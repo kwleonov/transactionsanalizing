@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "transactionsanalizing"
+version = "0.1.0"
+description = "generation json-data for web and Excel-reports"
+authors = ["Konstantin Leonov <leonovkw@yandex.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.3"
+openpyxl = "^3.1.5"
+
+
+[tool.poetry.group.lint.dependencies]
+flake8 = "^7.1.1"
+isort = "^5.13.2"
+mypy = "^1.14.0"
+pandas-stubs = "^2.2.3.241126"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
