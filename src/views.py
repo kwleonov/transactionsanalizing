@@ -65,7 +65,7 @@ def get_currency_rates_by_cbr(date: datetime.date) -> dict[str, float] | None:
     'CharCode' as currency code, 'VunitRate' as currency rate"""
 
     # get XML data
-    url = f"https://cbr.ru/scripts/XML_daily.asp?date_req={date.strftime("%d/%m/%Y")}"
+    url = f'https://cbr.ru/scripts/XML_daily.asp?date_req={date.strftime("%d/%m/%Y")}'
 
     xml_data: ET.Element = ET.Element("Empty")
     try:
