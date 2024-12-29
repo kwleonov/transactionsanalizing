@@ -1,5 +1,8 @@
 import datetime
 from collections.abc import Callable
+from xml.etree import ElementTree as ET
+
+import requests
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -52,3 +55,38 @@ def get_currency_rates(inner: INNER) -> OUTER:
         return None
 
     return wrapper
+
+
+@get_currency_rates
+def get_currency_rates_by_cbr(date: datetime.date) -> dict[str, float] | None:
+    """get currency rates by cbr.ru
+    url example: 'https://cbr.ru/scripts/XML_daily.asp?date_req=21/03/2002'
+    API returned XML data, where 'Valute' tag contents:
+    'CharCode' as currency code, 'VunitRate' as currency rate"""
+
+    # get XML data
+    url = f"https://cbr.ru/scripts/XML_daily.asp?date_req={date.strftime("%d/%m/%Y")}"
+
+    xml_data: ET.Element = ET.Element("Empty")
+    try:
+        req = requests.get(url)
+        xml_data = ET.fromstring(req.content)
+
+    except Exception as e:
+        print(f"get_currency_rates_by_cbr was executed with error: {e}")
+        return None
+
+    # get currency rates from xml data
+    currency_rates: dict[str, float] = dict()
+    try:
+        for valute in xml_data.iter("Valute"):
+            charcode = valute.find("CharCode")
+            rate = valute.find("VunitRate")
+            if (charcode is not None) and (rate is not None):
+                rate_float = float(str(rate.text).replace(",", "."))
+                currency_rates[str(charcode.text)] = rate_float
+    except Exception as e:
+        print(f"get_currency_rates_by_cbr getting error: {e}")
+        return None
+
+    return currency_rates
