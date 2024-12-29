@@ -1,4 +1,8 @@
 import datetime
+from collections.abc import Callable
+
+INNER = Callable[[datetime.date], dict[str, float] | None]
+OUTER = Callable[[str, datetime.date], float | None]
 
 
 def greeting(time: datetime.time) -> str:
@@ -20,3 +24,31 @@ def greeting(time: datetime.time) -> str:
     if time.hour < 18:
         return good_day
     return good_evening
+
+
+def get_currency_rates(inner: INNER) -> OUTER:
+    """get exchange from currency amount by code 'currency_code' to RUB"""
+
+    currency_rates: dict[datetime.date, dict[str, float]] = dict()  # dict of currency rate by date as key
+
+    def wrapper(currency_code: str, date: datetime.date) -> float | None:
+        """getting currency rates from external API"""
+
+        if date in currency_rates:
+            if currency_code in currency_rates[date]:
+                return currency_rates[date][currency_code]
+            print(f"get_currency_rates didn\'t find {currency_code} in currency_rates at {date}")
+            return None
+
+        currency_rates_by_inner = inner(date)
+        if currency_rates_by_inner is None:
+            print(f"get_currency_rates at {date} was executed inner and returned None")
+            return None
+
+        currency_rates[date] = currency_rates_by_inner
+        if currency_code in currency_rates_by_inner:
+            return currency_rates_by_inner[currency_code]
+        print(f"get_currency_rates didn\'t find {currency_code} in currency_rates at {date}")
+        return None
+
+    return wrapper
