@@ -9,8 +9,8 @@ import pytest
 
 from src.views import (exchange, get_cards_info, get_currency_rates,
                        get_currency_rates_by_cbr, get_date,
-                       get_top_transactions, greeting, main_page, mask_card,
-                       read_excel)
+                       get_top_transactions, get_user_prefer_currency_rates,
+                       greeting, main_page, mask_card, read_excel)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -363,6 +363,18 @@ def test_get_top_transactions_error() -> None:
     )
     date = datetime.date.today()
     assert get_top_transactions(df, date, lambda x, y: 1.0) == []
+
+
+@pytest.mark.parametrize("user_currencies, currency_rates", [
+    (
+        ["USD", "EUR"],
+        [{"USD": 100.0}, {"EUR": 100.0}]
+    ),
+])
+def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rates: list[dict[str, float]]) -> None:
+    """testing get_user_prefer_currency_rates"""
+
+    assert get_user_prefer_currency_rates(user_currencies, lambda x, y: 100.0) == currency_rates
 
 
 @pytest.mark.parametrize(

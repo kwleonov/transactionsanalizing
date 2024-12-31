@@ -290,6 +290,21 @@ def get_top_transactions(
     return transactions
 
 
+def get_user_prefer_currency_rates(
+        user_prefer_currency: list[str], get_currency_rate: OUTER) -> list[dict[str, float]]:
+    """getting user currency (from user_settings file) rates and return them in list of dict """
+
+    rates = list()
+    date = datetime.date.today()
+    for currency in user_prefer_currency:
+        rate = get_currency_rate(currency, date)
+        rate_float = 0.0
+        if rate is not None:
+            rate_float = float(rate)
+        rates.append({currency: rate_float})
+    return rates
+
+
 def main_page(date_str: str = "") -> str:
     """get date by str with format 'YYYY-MM-DD HH:MM:SS'
     returns json data:
