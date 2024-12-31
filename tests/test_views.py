@@ -8,8 +8,9 @@ import pandas as pd
 import pytest
 
 from src.views import (exchange, get_cards_info, get_currency_rates,
-                       get_currency_rates_by_cbr, get_date, greeting,
-                       main_page, mask_card, read_excel)
+                       get_currency_rates_by_cbr, get_date,
+                       get_top_transactions, greeting, main_page, mask_card,
+                       read_excel)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -17,6 +18,12 @@ CardType = TypedDict('CardType', {
     'last_digits': str,
     'total_spent': float,
     'cashback': float
+})
+Transaction = TypedDict('Transaction', {
+    "date": str,
+    "amount": float,
+    "category": str,
+    "description": str,
 })
 
 
@@ -201,6 +208,62 @@ def test_get_cards_info_error() -> None:
         columns=['Статус', 'Номер карт', 'Сумма платежа', 'Валюта платежа', 'Дата платежа', 'Кэшбэк'])
     cards: list[CardType] = []
     assert get_cards_info(df, date, lambda x, y: None) == cards
+
+
+@pytest.mark.parametrize("transactions, date, get_currency_rate, result_dict", [
+    (
+        pd.DataFrame([
+            ("OK", "*1234", 100.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -200.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -300.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -50.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", 30.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", 500.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -400.01, "USD", "15.12.2024", "Перевод", "Друг"),
+        ],
+            columns=[
+                "Статус", "Номер карт", "Сумма платежа", "Валюта платежа", "Дата платежа", "Категория", "Описание",
+            ]),
+        datetime.date(day=31, month=12, year=2024),
+        lambda x, y: 1.0,
+        [
+            {"date": "15.12.2024", "amount": 500.01, "category": "Перевод", "description": "Друг"},
+            {"date": "15.12.2024", "amount": -400.01, "category": "Перевод", "description": "Друг"},
+            {"date": "15.12.2024", "amount": -300.01, "category": "Перевод", "description": "Друг"},
+            {"date": "15.12.2024", "amount": -200.01, "category": "Перевод", "description": "Друг"},
+            {"date": "15.12.2024", "amount": 100.01, "category": "Перевод", "description": "Друг"},
+        ],
+    ),
+])
+def test_get_top_transactions(
+        transactions: pd.DataFrame,
+        date: datetime.date,
+        get_currency_rate: OUTER,
+        result_dict: list[Transaction],
+) -> None:
+    """testing get top transactions list"""
+
+    result = get_top_transactions(transactions, date, get_currency_rate)
+    assert result == result_dict
+
+
+def test_get_top_transactions_error() -> None:
+    """testing get_top_transactions getting error"""
+
+    df = pd.DataFrame([
+            ("OK", "*1234", 100.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -200.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -300.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -50.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", 30.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", 500.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", -400.01, "USD", "15.12.2024", "Перевод", "Друг"),
+        ],
+            columns=[
+                "Статус", "Номер карт", "Сумма платежа", "Валюта платежа", "Дата платежа", "Категори", "Описание",
+            ])
+    date = datetime.date.today()
+    assert get_top_transactions(df, date, lambda x, y: 1.0) == []
 
 
 @pytest.mark.parametrize("date, json_result", [

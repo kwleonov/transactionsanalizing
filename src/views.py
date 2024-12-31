@@ -14,9 +14,16 @@ CardType = TypedDict('CardType', {
     'total_spent': float,
     'cashback': float
 })
+Transaction = TypedDict('Transaction', {
+    "date": str,
+    "amount": float,
+    "category": str,
+    "description": str,
+})
 TransactionInfo = TypedDict('TransactionInfo', {
     'greeting': str,
     'cards': list[CardType],
+    'top_transactions': list[Transaction],
 })
 
 
@@ -190,6 +197,48 @@ def get_cards_info(df: pd.DataFrame, date: datetime.date, get_currency_rate: OUT
     return cards
 
 
+def get_top_transactions(df: pd.DataFrame, date: datetime.date, get_currency_rate: OUTER) -> list[Transaction]:
+    """getting top 5 transactions by 'Сумма платежа'"""
+
+    transactions: list[Transaction] = list()
+
+    try:
+        date_end = date.strftime('%d.%m.%Y')
+        date_start = date.strftime('01.%m.%Y')
+        transactions_data = df.loc[
+            (df['Дата платежа'] >= date_start) &
+            (df['Дата платежа'] <= date_end) &
+            (df['Статус'] == 'OK'),
+            ['Сумма платежа', 'Валюта платежа', 'Дата платежа', 'Категория', 'Описание']].copy()
+        transactions_data['amount_rub'] = transactions_data.apply(lambda x: exchange(
+            x['Сумма платежа'],
+            x['Валюта платежа'],
+            x['Дата платежа'],
+            get_currency_rate), axis=1)
+        transactions_data['amount_rub'] = abs(transactions_data['amount_rub'])
+        top5_transactions = transactions_data.rename(columns={
+            'Дата платежа': 'date',
+            'Сумма платежа': 'amount',
+            'Категория': 'category',
+            'Описание': 'description',
+        }).sort_values(
+            'amount_rub', ascending=False
+        ).head(5)
+        top5_dict = top5_transactions.to_dict('records')
+        for row in top5_dict:
+            transactions.append({
+                "date": row["date"],
+                "amount": row["amount"],
+                "category": row["category"],
+                "description": row["description"],
+            })
+
+    except Exception as e:
+        print(f"get_top_transactions was executed with error: {e}")
+
+    return transactions
+
+
 def main_page(date_str: str = "") -> str:
     """get date by str with format 'YYYY-MM-DD HH:MM:SS'
     returns json data:
@@ -200,6 +249,14 @@ def main_page(date_str: str = "") -> str:
                 "last_digits": "1234",
                 "total_spent": 1000.0,
                 "cashback": 100.0,
+            },
+        ]
+        "top_transactions": [
+            {
+                "date": "31.12.2024",
+                "amount": 1234.56,
+                "category": "Перевод",
+                "description": "Покупка",
             },
         ]
     }"""
