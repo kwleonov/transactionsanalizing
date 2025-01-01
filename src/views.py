@@ -21,12 +21,17 @@ Transaction = TypedDict(
         "description": str,
     },
 )
+Currency = TypedDict("Currency", {
+    "currency": str,
+    "rate": float,
+})
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
         "greeting": str,
         "cards": list[CardType],
         "top_transactions": list[Transaction],
+        "currency_rates": list[Currency],
     },
 )
 
@@ -77,7 +82,7 @@ def get_currency_rates(inner: INNER) -> OUTER:
             if currency_code in currency_rates[date]:
                 return currency_rates[date][currency_code]
             print(
-                f"get_currency_rates didn't find {currency_code} in currency_rates at {date}"
+                f"get_currency_rates didn't find {currency_code} in {currency_rates} at {date}"
             )
             return None
 
@@ -90,7 +95,7 @@ def get_currency_rates(inner: INNER) -> OUTER:
         if currency_code in currency_rates_by_inner:
             return currency_rates_by_inner[currency_code]
         print(
-            f"get_currency_rates didn't find {currency_code} in currency_rates at {date}"
+            f"get_currency_rates didn't find {currency_code} in {currency_rates} at {date}"
         )
         return None
 
@@ -181,11 +186,12 @@ def get_cards_info(
 
     cards: list[CardType] = list()
     try:
-        date_end = date.strftime("%d.%m.%Y")
-        date_start = date.strftime("01.%m.%Y")
+        date_end = date
+        date_start = date.replace(day=1)
+        df['datetime'] = df['Дата платежа'].apply(lambda x: datetime.datetime.strptime(x, "%d.%m.%Y"))
         transactions_data = df.loc[
-            (df["Дата платежа"] >= date_start)
-            & (df["Дата платежа"] <= date_end)
+            (df["datetime"].dt.date >= date_start)
+            & (df["datetime"].dt.date <= date_end)
             & (df["Сумма платежа"] < 0)
             & (df["Статус"] == "OK"),
             [
@@ -237,11 +243,12 @@ def get_top_transactions(
     transactions: list[Transaction] = list()
 
     try:
-        date_end = date.strftime("%d.%m.%Y")
-        date_start = date.strftime("01.%m.%Y")
+        date_end = date
+        date_start = date.replace(day=1)
+        df['datetime'] = df['Дата платежа'].apply(lambda x: datetime.datetime.strptime(x, "%d.%m.%Y"))
         transactions_data = df.loc[
-            (df["Дата платежа"] >= date_start)
-            & (df["Дата платежа"] <= date_end)
+            (df["datetime"].dt.date >= date_start)
+            & (df["datetime"].dt.date <= date_end)
             & (df["Статус"] == "OK"),
             [
                 "Сумма платежа",
@@ -291,17 +298,17 @@ def get_top_transactions(
 
 
 def get_user_prefer_currency_rates(
-        user_prefer_currency: list[str], get_currency_rate: OUTER) -> list[dict[str, float]]:
+        user_prefer_currency: list[str], get_currency_rate: OUTER) -> list[Currency]:
     """getting user currency (from user_settings file) rates and return them in list of dict """
 
-    rates = list()
+    rates: list[Currency] = list()
     date = datetime.date.today()
     for currency in user_prefer_currency:
         rate = get_currency_rate(currency, date)
         rate_float = 0.0
         if rate is not None:
             rate_float = float(rate)
-        rates.append({currency: rate_float})
+        rates.append({"currency": currency, "rate": rate_float})
     return rates
 
 
@@ -342,7 +349,13 @@ def main_page(date_str: str = "") -> str:
         json_data["cards"] = get_cards_info(df, date, get_currency_rates_by_cbr)
         json_data["top_transactions"] = get_top_transactions(df, date, get_currency_rates_by_cbr)
 
+        with (open("user_settings.json") as user_settings_json_file):
+            user_prefer_currencies = json.load(user_settings_json_file)["user_currencies"]
+            json_data["currency_rates"] = get_user_prefer_currency_rates(
+                user_prefer_currencies, get_currency_rates_by_cbr)
+
         json_str = json.dumps(json_data, indent=4, ensure_ascii=False)
+
     except Exception as e:
         print(f"main_page was executed with error: {e}")
 

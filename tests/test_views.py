@@ -26,12 +26,17 @@ Transaction = TypedDict(
         "description": str,
     },
 )
+Currency = TypedDict("Currency", {
+    "currency": str,
+    "rate": float,
+})
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
         "greeting": str,
         "cards": list[CardType],
         "top_transactions": list[Transaction],
+        "currency_rates": list[Currency],
     },
 )
 
@@ -123,7 +128,7 @@ def test_get_currency_rates_by_cbr() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr("USD", datetime.datetime.now().date())
+        result = get_currency_rates_by_cbr("USD", datetime.date(day=1, month=2, year=1991))
         assert result == 1.0
 
 
@@ -141,8 +146,7 @@ def test_bad_xml_data() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        date = datetime.datetime.today()
-        result = get_currency_rates_by_cbr("USD", date.replace(day=date.day - 1))
+        result = get_currency_rates_by_cbr("USD", datetime.date(day=2, month=2, year=1991))
         assert result is None
 
 
@@ -161,8 +165,7 @@ def test_bad_xml_rate() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        date = datetime.datetime.today()
-        result = get_currency_rates_by_cbr("USD", date.replace(day=date.day - 2))
+        result = get_currency_rates_by_cbr("USD", datetime.date(day=3, month=2, year=1991))
         assert result is None
 
 
@@ -192,10 +195,10 @@ def test_not_exist_excel() -> None:
 @pytest.mark.parametrize(
     "amount, currency_code, date_str, func, result",
     [
-        (100.0, "RUB", "01.02.2003", lambda x, y: 1.0, 100.0),
-        (100.0, "USD", "02.02.2003", lambda x, y: 2.0, 200.0),
-        (100.0, "USD", "29.02.2003", lambda x, y: 3.0, None),
-        (100.0, "USD", "01.02.2003", lambda x, y: None, None),
+        (100.0, "RUB", "01.02.1992", lambda x, y: 1.0, 100.0),
+        (100.0, "USD", "02.02.1992", lambda x, y: 2.0, 200.0),
+        (100.0, "USD", "30.02.1992", lambda x, y: 3.0, None),
+        (100.0, "USD", "01.02.1992", lambda x, y: None, None),
     ],
 )
 def test_exchange(
@@ -210,12 +213,12 @@ def test_exchange(
 def test_get_cards_info() -> None:
     """testing get_cards_info"""
 
-    date = datetime.date.today()
+    date = datetime.date(day=17, month=12, year=1993)
     df = pd.DataFrame(
         [
-            ("OK", "*1234", -1000.0, "RUB", "15.12.2024", 100.0),
-            ("OK", "*1234", -1000.0, "RUB", "16.12.2024", 100.0),
-            ("OK", "*1235", -1000.0, "RUB", "15.12.2024", 100.0),
+            ("OK", "*1234", -1000.0, "RUB", "15.12.1993", 100.0),
+            ("OK", "*1234", -1000.0, "RUB", "16.12.1993", 100.0),
+            ("OK", "*1235", -1000.0, "RUB", "15.12.1993", 100.0),
         ],
         columns=[
             "Статус",
@@ -248,9 +251,9 @@ def test_get_cards_info_error() -> None:
     date = datetime.date.today()
     df = pd.DataFrame(
         [
-            ("OK", "*1234", -1000.0, "XYZ", "15.12.2024", 100.0),
-            ("OK", "*1234", -1000.0, "RUB", "16.12.2024", 100.0),
-            ("OK", "*1235", -1000.0, "RUB", "15.12.2024", 100.0),
+            ("OK", "*1234", -1000.0, "XYZ", "15.12.1994", 100.0),
+            ("OK", "*1234", -1000.0, "RUB", "16.12.1994", 100.0),
+            ("OK", "*1235", -1000.0, "RUB", "15.12.1994", 100.0),
         ],
         columns=[
             "Статус",
@@ -271,13 +274,13 @@ def test_get_cards_info_error() -> None:
         (
             pd.DataFrame(
                 [
-                    ("OK", "*1234", 100.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", -200.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", -300.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", -50.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", 30.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", 500.01, "USD", "15.12.2024", "Перевод", "Друг"),
-                    ("OK", "*1234", -400.01, "USD", "15.12.2024", "Перевод", "Друг"),
+                    ("OK", "*1234", 100.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", -200.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", -300.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", -50.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", 30.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", 500.01, "USD", "15.12.1995", "Перевод", "Друг"),
+                    ("OK", "*1234", -400.01, "USD", "15.12.1995", "Перевод", "Друг"),
                 ],
                 columns=[
                     "Статус",
@@ -289,35 +292,35 @@ def test_get_cards_info_error() -> None:
                     "Описание",
                 ],
             ),
-            datetime.date(day=31, month=12, year=2024),
+            datetime.date(day=31, month=12, year=1995),
             lambda x, y: 1.0,
             [
                 {
-                    "date": "15.12.2024",
+                    "date": "15.12.1995",
                     "amount": 500.01,
                     "category": "Перевод",
                     "description": "Друг",
                 },
                 {
-                    "date": "15.12.2024",
+                    "date": "15.12.1995",
                     "amount": -400.01,
                     "category": "Перевод",
                     "description": "Друг",
                 },
                 {
-                    "date": "15.12.2024",
+                    "date": "15.12.1995",
                     "amount": -300.01,
                     "category": "Перевод",
                     "description": "Друг",
                 },
                 {
-                    "date": "15.12.2024",
+                    "date": "15.12.1995",
                     "amount": -200.01,
                     "category": "Перевод",
                     "description": "Друг",
                 },
                 {
-                    "date": "15.12.2024",
+                    "date": "15.12.1995",
                     "amount": 100.01,
                     "category": "Перевод",
                     "description": "Друг",
@@ -343,13 +346,13 @@ def test_get_top_transactions_error() -> None:
 
     df = pd.DataFrame(
         [
-            ("OK", "*1234", 100.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", -200.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", -300.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", -50.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", 30.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", 500.01, "USD", "15.12.2024", "Перевод", "Друг"),
-            ("OK", "*1234", -400.01, "USD", "15.12.2024", "Перевод", "Друг"),
+            ("OK", "*1234", 100.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", -200.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", -300.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", -50.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", 30.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", 500.01, "USD", "15.12.1996", "Перевод", "Друг"),
+            ("OK", "*1234", -400.01, "USD", "15.12.1996", "Перевод", "Друг"),
         ],
         columns=[
             "Статус",
@@ -368,10 +371,10 @@ def test_get_top_transactions_error() -> None:
 @pytest.mark.parametrize("user_currencies, currency_rates", [
     (
         ["USD", "EUR"],
-        [{"USD": 100.0}, {"EUR": 100.0}]
+        [{"currency": "USD", "rate": 100.0}, {"currency": "EUR", "rate": 100.0}]
     ),
 ])
-def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rates: list[dict[str, float]]) -> None:
+def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rates: list[Currency]) -> None:
     """testing get_user_prefer_currency_rates"""
 
     assert get_user_prefer_currency_rates(user_currencies, lambda x, y: 100.0) == currency_rates
@@ -381,7 +384,7 @@ def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rat
     "date, json_result",
     [
         (
-            "2024-12-30 21:58:00",
+            "1997-12-30 21:58:00",
             {
                 "greeting": "",
                 "cards": [
@@ -389,39 +392,49 @@ def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rat
                 ],
                 "top_transactions": [
                     {
-                        "date": "11.12.2024",
+                        "date": "11.12.1997",
                         "amount": -600.0,
                         "category": "Перевод",
                         "description": "Друг",
                     },
                     {
-                        "date": "15.12.2024",
+                        "date": "15.12.1997",
                         "amount": -500.0,
                         "category": "Перевод",
                         "description": "Друг",
                     },
                     {
-                        "date": "16.12.2024",
+                        "date": "16.12.1997",
                         "amount": -400.0,
                         "category": "Перевод",
                         "description": "Друг",
                     },
                     {
-                        "date": "12.12.2024",
+                        "date": "12.12.1997",
                         "amount": -200.0,
                         "category": "Перевод",
                         "description": "Друг",
                     },
                     {
-                        "date": "17.12.2024",
+                        "date": "17.12.1997",
                         "amount": -100.0,
                         "category": "Перевод",
                         "description": "Друг",
                     },
                 ],
+                "currency_rates": [
+                    {
+                        "currency": "USD",
+                        "rate": 100.0,
+                    },
+                    {
+                        "currency": "EUR",
+                        "rate": 110.0,
+                    },
+                ],
             },
         ),
-        ("2024-12-30 24:00:01", {}),
+        ("1998-12-30 24:00:01", {}),
     ],
 )
 def test_main_page(date: str, json_result: TransactionInfo) -> None:
@@ -430,11 +443,11 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
     with patch("pandas.read_excel") as mock_excel:
         mock_excel.return_value = pd.DataFrame(
             [
-                ("OK", "*1234", -500.0, "RUB", "15.12.2024", 50.0, "Перевод", "Друг"),
-                ("OK", "*1234", -400.0, "RUB", "16.12.2024", 40.0, "Перевод", "Друг"),
-                ("OK", "*1234", -100.0, "RUB", "17.12.2024", 10.0, "Перевод", "Друг"),
-                ("OK", "*1234", -600.0, "RUB", "11.12.2024", 60.0, "Перевод", "Друг"),
-                ("OK", "*1234", -200.0, "RUB", "12.12.2024", 20.0, "Перевод", "Друг"),
+                ("OK", "*1234", -500.0, "RUB", "15.12.1997", 50.0, "Перевод", "Друг"),
+                ("OK", "*1234", -400.0, "RUB", "16.12.1997", 40.0, "Перевод", "Друг"),
+                ("OK", "*1234", -100.0, "RUB", "17.12.1997", 10.0, "Перевод", "Друг"),
+                ("OK", "*1234", -600.0, "RUB", "11.12.1997", 60.0, "Перевод", "Друг"),
+                ("OK", "*1234", -200.0, "RUB", "12.12.1997", 20.0, "Перевод", "Друг"),
             ],
             columns=[
                 "Статус",
@@ -449,6 +462,19 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
         )
         if "greeting" in json_result:
             json_result["greeting"] = greeting(datetime.datetime.now().time())
-        result = main_page(date)
+        result = ""
+        with patch('requests.get') as mock_xml:
+            mock_xml.return_value.content = """
+            <ValCurse>
+                <Valute>
+                    <CharCode>USD</CharCode>
+                    <VunitRate>100,0</VunitRate>
+                </Valute>
+                <Valute>
+                    <CharCode>EUR</CharCode>
+                    <VunitRate>110,0</VunitRate>
+                </Valute>
+            </ValCurse>"""
+            result = main_page(date)
         json_data = json.loads(result)
         assert json_data == json_result
