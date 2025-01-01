@@ -475,6 +475,8 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
                     <VunitRate>110,0</VunitRate>
                 </Valute>
             </ValCurse>"""
-            result = main_page(date)
+            with patch('json.load') as mock_json:
+                mock_json.return_value = {"user_currencies": ["USD", "EUR"]}
+                result = main_page(date)
         json_data = json.loads(result)
         assert json_data == json_result
