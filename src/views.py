@@ -399,9 +399,11 @@ def main_page(date_str: str = "") -> str:
         json_data["top_transactions"] = get_top_transactions(df, date, get_currency_rates_by_cbr)
 
         with (open("user_settings.json") as user_settings_json_file):
-            user_prefer_currencies = json.load(user_settings_json_file)["user_currencies"]
+            user_settings = json.load(user_settings_json_file)
+            user_prefer_currencies = user_settings["user_currencies"]
             json_data["currency_rates"] = get_user_prefer_currency_rates(
                 user_prefer_currencies, get_currency_rates_by_cbr)
+            json_data["stock_prices"] = get_user_stocks()
 
         json_str = json.dumps(json_data, indent=4, ensure_ascii=False)
 

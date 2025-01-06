@@ -31,6 +31,10 @@ Currency = TypedDict("Currency", {
     "currency": str,
     "rate": float,
 })
+SandP500 = TypedDict("SandP500", {
+    "stock": str,
+    "price": float,
+})
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
@@ -38,6 +42,7 @@ TransactionInfo = TypedDict(
         "cards": list[CardType],
         "top_transactions": list[Transaction],
         "currency_rates": list[Currency],
+        "stock_prices": list[SandP500],
     },
 )
 
@@ -498,6 +503,12 @@ def test_get_bad_user_stocks() -> None:
                         "rate": 110.0,
                     },
                 ],
+                "stock_prices": [
+                    {
+                        "stock": "AAPL",
+                        "price": 100.0,
+                    },
+                ],
             },
         ),
         ("1998-12-30 24:00:01", {}),
@@ -529,20 +540,24 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
         if "greeting" in json_result:
             json_result["greeting"] = greeting(datetime.datetime.now().time())
         result = ""
-        with patch('requests.get') as mock_xml:
-            mock_xml.return_value.content = """
-            <ValCurse>
-                <Valute>
-                    <CharCode>USD</CharCode>
-                    <VunitRate>100,0</VunitRate>
-                </Valute>
-                <Valute>
-                    <CharCode>EUR</CharCode>
-                    <VunitRate>110,0</VunitRate>
-                </Valute>
-            </ValCurse>"""
-            with patch('json.load') as mock_json:
-                mock_json.return_value = {"user_currencies": ["USD", "EUR"]}
-                result = main_page(date)
+        patch_requests = patch('requests.get')
+        mock_requests = patch_requests.start()
+        mock_requests.return_value.content = """
+        <ValCurse>
+            <Valute>
+                <CharCode>USD</CharCode>
+                <VunitRate>100,0</VunitRate>
+            </Valute>
+            <Valute>
+                <CharCode>EUR</CharCode>
+                <VunitRate>110,0</VunitRate>
+            </Valute>
+        </ValCurse>"""
+        mock_requests.return_value.json.return_value = [{"symbol": "AAPL", "price": 100.0}]
+        patch_json = patch('json.load')
+        mock_json = patch_json.start()
+        mock_json.return_value = {"user_currencies": ["USD", "EUR"], "user_stocks": ["AAPL"]}
+
+        result = main_page(date)
         json_data = json.loads(result)
         assert json_data == json_result
