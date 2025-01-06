@@ -393,6 +393,7 @@ def test_get_user_stocks() -> None:
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
     mock_requests.return_value.json.return_value = [{"symbol":  "AAPL", "price": 100.0}]
+    mock_requests.return_value.ok = True
 
     user_stocks = get_user_stocks()
 
@@ -400,6 +401,49 @@ def test_get_user_stocks() -> None:
     mock_json.stop()
 
     assert user_stocks == test_result
+
+
+def test_get_bad_url_user_stocks() -> None:
+    """testing for bad api key"""
+
+    error_msg = """{'Error Message': 'Invalid API KEY. Feel free to create a Free API Key or
+    visit https://site.financialmodelingprep.com/faqs?search=why-is-my-api-key-invalid for more information.'}"""
+
+    patch_json = patch("json.load")
+    mock_json = patch_json.start()
+    mock_json.return_value = {"user_stocks": ["AAPL"]}
+
+    patch_requests = patch("requests.get")
+    mock_requests = patch_requests.start()
+    mock_requests.return_value.json.return_value = error_msg
+    mock_requests.return_value.ok = False
+
+    user_stocks = get_user_stocks()
+
+    mock_requests.stop()
+    mock_json.stop()
+
+    assert user_stocks == []
+
+
+def test_get_bad_user_stocks() -> None:
+    """testing for bad json data"""
+
+    patch_json = patch("json.load")
+    mock_json = patch_json.start()
+    mock_json.return_value = {"user_stocks": ["AAPL"]}
+
+    patch_requests = patch("requests.get")
+    mock_requests = patch_requests.start()
+    mock_requests.return_value.json.return_value = [{"symbol":  "AAPL", "price": "100,0"}]
+    mock_requests.return_value.ok = True
+
+    user_stocks = get_user_stocks()
+
+    mock_requests.stop()
+    mock_json.stop()
+
+    assert user_stocks == []
 
 
 @pytest.mark.parametrize(
