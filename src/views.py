@@ -331,15 +331,20 @@ def get_user_stocks() -> list[SandP500]:
             json_data = json.load(f)
             stocks = json_data["user_stocks"]
 
-        resp = requests.get(f"https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}")
-        stocks_data = resp.json()
+        url = f"https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}"
+        resp = requests.get(url)
 
+        if not resp.ok:
+            print(f"get_user_stocks was executed with error get data from {url}: {resp.json()}")
+            return user_stocks
+
+        stocks_data = resp.json()
         for symbol in stocks_data:
             stock = symbol["symbol"]
             if stock in stocks:
                 user_stocks.append({"stock": stock, "price": float(symbol["price"])})
     except Exception as e:
-        print(f"get_user_stocks was executed with erro: {e}")
+        print(f"get_user_stocks was executed with error: {e}")
 
     return user_stocks
 
