@@ -10,7 +10,8 @@ import pytest
 from src.views import (exchange, get_cards_info, get_currency_rates,
                        get_currency_rates_by_cbr, get_date,
                        get_top_transactions, get_user_prefer_currency_rates,
-                       greeting, main_page, mask_card, read_excel)
+                       get_user_stocks, greeting, main_page, mask_card,
+                       read_excel)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -378,6 +379,27 @@ def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rat
     """testing get_user_prefer_currency_rates"""
 
     assert get_user_prefer_currency_rates(user_currencies, lambda x, y: 100.0) == currency_rates
+
+
+def test_get_user_stocks() -> None:
+    """testing get stocks s&p500"""
+
+    test_result = [{"stock":  "AAPL", "price": 100.0}]
+
+    patch_json = patch("json.load")
+    mock_json = patch_json.start()
+    mock_json.return_value = {"user_stocks": ["AAPL"]}
+
+    patch_requests = patch("requests.get")
+    mock_requests = patch_requests.start()
+    mock_requests.return_value.json.return_value = [{"symbol":  "AAPL", "price": 100.0}]
+
+    user_stocks = get_user_stocks()
+
+    mock_requests.stop()
+    mock_json.stop()
+
+    assert user_stocks == test_result
 
 
 @pytest.mark.parametrize(

@@ -1,11 +1,13 @@
 import datetime
 import json
+import os
 from collections.abc import Callable
 from typing import TypedDict
 from xml.etree import ElementTree as ET
 
 import pandas as pd
 import requests
+from dotenv import load_dotenv
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -25,6 +27,10 @@ Currency = TypedDict("Currency", {
     "currency": str,
     "rate": float,
 })
+SandP500 = TypedDict("SandP500", {
+    "stock": str,
+    "price": float,
+})
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
@@ -32,6 +38,7 @@ TransactionInfo = TypedDict(
         "cards": list[CardType],
         "top_transactions": list[Transaction],
         "currency_rates": list[Currency],
+        "stock_prices": list[SandP500],
     },
 )
 
@@ -312,6 +319,31 @@ def get_user_prefer_currency_rates(
     return rates
 
 
+def get_user_stocks() -> list[SandP500]:
+    """getting S&P500 stocks from https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}"""
+
+    user_stocks: list[SandP500] = list()
+    try:
+        stocks = list()
+        load_dotenv()
+        api_key = os.getenv("APISP500")
+        with open("user_settings.json") as f:
+            json_data = json.load(f)
+            stocks = json_data["user_stocks"]
+
+        resp = requests.get(f"https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}")
+        stocks_data = resp.json()
+
+        for symbol in stocks_data:
+            stock = symbol["symbol"]
+            if stock in stocks:
+                user_stocks.append({"stock": stock, "price": float(symbol["price"])})
+    except Exception as e:
+        print(f"get_user_stocks was executed with erro: {e}")
+
+    return user_stocks
+
+
 def main_page(date_str: str = "") -> str:
     """get date by str with format 'YYYY-MM-DD HH:MM:SS'
     returns json data:
@@ -331,7 +363,19 @@ def main_page(date_str: str = "") -> str:
                 "category": "Перевод",
                 "description": "Покупка",
             },
-        ]
+        ],
+        "currency_rates": [
+            {
+                "currency": "USD",
+                "rate": float,
+            },
+        ],
+        "stock_prices": [
+            {
+                "stock": "AMZN":
+                "price": 3173.18,
+            },
+        ],
     }"""
 
     json_str = "{}"
