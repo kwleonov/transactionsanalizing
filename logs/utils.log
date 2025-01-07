@@ -1,8 +1,0 @@
-2025-01-07 21:26:32,936 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,951 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,956 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,962 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,966 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,971 utils.py DEBUG: read_excel was executed without errors
-2025-01-07 21:26:32,974 utils.py ERROR: read_excel() was executed with error: [Errno 2] No such file or directory: 'notexist.xlsx'
-2025-01-07 21:26:33,098 utils.py DEBUG: read_excel was executed without errors
