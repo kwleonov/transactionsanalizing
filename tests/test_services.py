@@ -1,4 +1,5 @@
 # the test_services module
+
 import json
 from unittest.mock import patch
 
@@ -141,8 +142,8 @@ def test_search_individual_transfers_empty_filtered() -> None:
 @pytest.mark.parametrize("df", [
     pd.DataFrame([("31.12.2021")], columns=["Дата платежа"]),
     pd.DataFrame(
-        [("Переводы", -800.0, "Константин Л.")],
-        columns=["Категория", "Сумма платежа", "Описание"]),
+        [("OK", "Переводы", -800.0)],
+        columns=["Статус", "Категория", "Сумма платежа"]),
 ])
 def test_search_individual_transfers_key_error(df: pd.DataFrame) -> None:
     """testing getting key error"""

@@ -2,7 +2,7 @@ import datetime
 import json
 from collections.abc import Callable
 from typing import TypedDict
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -10,8 +10,7 @@ import pytest
 from src.views import (exchange, get_cards_info, get_currency_rates,
                        get_currency_rates_by_cbr, get_date,
                        get_top_transactions, get_user_prefer_currency_rates,
-                       get_user_stocks, greeting, main_page, mask_card,
-                       read_excel)
+                       get_user_stocks, greeting, main_page, mask_card)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]

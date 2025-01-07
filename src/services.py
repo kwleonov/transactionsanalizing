@@ -1,10 +1,22 @@
 # The services module.
 
 import json
+import logging
+from os import makedirs
 
 import pandas as pd
 
 from src.utils import read_excel
+
+log_file = "logs/services.log"
+log_ok_str = "was executed without errors"
+makedirs("logs", exist_ok=True)
+logger = logging.getLogger(__name__)
+file_formatter = logging.Formatter("%(asctime)s %(filename)s %(levelname)s: %(message)s")
+file_handler = logging.FileHandler(log_file, mode="w")
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+logger.setLevel(logging.DEBUG)
 
 
 def search_individual_transfers() -> str:
@@ -18,7 +30,7 @@ def search_individual_transfers() -> str:
 
     df = read_excel("data/operations.xlsx")
     if df.empty:
-        print("search_individual_transfers got empty excel data.")
+        logger.warning("search_individual_transfers got empty excel data.")
         return transactions
 
     filtered_df = pd.DataFrame()
@@ -29,13 +41,12 @@ def search_individual_transfers() -> str:
                              (df["Сумма платежа"] < 0) &
                              (df["Описание"].str.match(name_pattern))]
     except Exception as e:
-        print(f"search_individual_transfers was executed with error: {e}.")
+        logger.error(f"search_individual_transfers was executed with error: {e}.")
         return transactions
 
     if filtered_df.empty:
-        print("search_individual_transfers received empty transaction data after filtering.")
+        logger.warning("search_individual_transfers received empty transaction data after filtering.")
         return transactions
-
 
     transactions_dict = filtered_df.rename(
         columns={
@@ -58,5 +69,6 @@ def search_individual_transfers() -> str:
     ).to_dict("records")
 
     transactions = json.dumps(transactions_dict, ensure_ascii=False)
+    logger.debug(f"search_individual_transfers {log_ok_str}")
 
     return transactions

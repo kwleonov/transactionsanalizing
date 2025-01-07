@@ -8,8 +8,8 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 import requests
 from dotenv import load_dotenv
-from src.utils import read_excel
 
+from src.utils import read_excel
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
