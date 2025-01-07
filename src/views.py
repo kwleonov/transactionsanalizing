@@ -8,6 +8,8 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from src.utils import read_excel
+
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -151,20 +153,6 @@ def mask_card(card_number: str) -> str:
     last_digits = card_number[-4:]
 
     return last_digits
-
-
-def read_excel(filename: str) -> pd.DataFrame:
-    """reading transactions data from Excel file 'filename' and
-    return pandas DataFrame or empty data if it was executed with errors."""
-
-    excel_data = pd.DataFrame()
-    try:
-        with open(filename, "rb") as excel_file:
-            excel_data = pd.read_excel(excel_file)
-            return excel_data
-    except Exception as e:
-        print(f"read_excel() was executed with error: {e}")
-    return excel_data
 
 
 def exchange(
@@ -392,9 +380,7 @@ def main_page(date_str: str = "") -> str:
             date = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").date()
         json_data: TransactionInfo = dict()  # type: ignore
         json_data["greeting"] = greeting(date_now.time())
-        df = pd.DataFrame()
-        with open("data/operations.xlsx", "rb") as f:
-            df = pd.read_excel(f)
+        df = read_excel("data/operations.xlsx")
         json_data["cards"] = get_cards_info(df, date, get_currency_rates_by_cbr)
         json_data["top_transactions"] = get_top_transactions(df, date, get_currency_rates_by_cbr)
 
