@@ -1,5 +1,5 @@
-2025-01-07 21:20:40,452 services.py DEBUG: search_individual_transfers was executed without errors
-2025-01-07 21:20:40,458 services.py WARNING: search_individual_transfers got empty excel data.
-2025-01-07 21:20:40,468 services.py WARNING: search_individual_transfers received empty transaction data after filtering.
-2025-01-07 21:20:40,472 services.py ERROR: search_individual_transfers was executed with error: 'Статус'.
-2025-01-07 21:20:40,477 services.py ERROR: search_individual_transfers was executed with error: 'Описание'.
+2025-01-07 21:26:32,946 services.py DEBUG: search_individual_transfers was executed without errors
+2025-01-07 21:26:32,951 services.py WARNING: search_individual_transfers got empty excel data.
+2025-01-07 21:26:32,959 services.py WARNING: search_individual_transfers received empty transaction data after filtering.
+2025-01-07 21:26:32,963 services.py ERROR: search_individual_transfers was executed with error: 'Статус'.
+2025-01-07 21:26:32,967 services.py ERROR: search_individual_transfers was executed with error: 'Описание'.
