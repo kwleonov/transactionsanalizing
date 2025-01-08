@@ -26,14 +26,20 @@ Transaction = TypedDict(
         "description": str,
     },
 )
-Currency = TypedDict("Currency", {
-    "currency": str,
-    "rate": float,
-})
-SandP500 = TypedDict("SandP500", {
-    "stock": str,
-    "price": float,
-})
+Currency = TypedDict(
+    "Currency",
+    {
+        "currency": str,
+        "rate": float,
+    },
+)
+SandP500 = TypedDict(
+    "SandP500",
+    {
+        "stock": str,
+        "price": float,
+    },
+)
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
@@ -133,7 +139,9 @@ def test_get_currency_rates_by_cbr() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr("USD", datetime.date(day=1, month=2, year=1991))
+        result = get_currency_rates_by_cbr(
+            "USD", datetime.date(day=1, month=2, year=1991)
+        )
         assert result == 1.0
 
 
@@ -151,7 +159,9 @@ def test_bad_xml_data() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr("USD", datetime.date(day=2, month=2, year=1991))
+        result = get_currency_rates_by_cbr(
+            "USD", datetime.date(day=2, month=2, year=1991)
+        )
         assert result is None
 
 
@@ -170,7 +180,9 @@ def test_bad_xml_rate() -> None:
     with patch("requests.get") as mock_get:
         mock_get.return_value.content = mock_response
         mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr("USD", datetime.date(day=3, month=2, year=1991))
+        result = get_currency_rates_by_cbr(
+            "USD", datetime.date(day=3, month=2, year=1991)
+        )
         assert result is None
 
 
@@ -356,22 +368,30 @@ def test_get_top_transactions_error() -> None:
     assert get_top_transactions(df, date, lambda x, y: 1.0) == []
 
 
-@pytest.mark.parametrize("user_currencies, currency_rates", [
-    (
-        ["USD", "EUR"],
-        [{"currency": "USD", "rate": 100.0}, {"currency": "EUR", "rate": 100.0}]
-    ),
-])
-def test_get_user_prefer_currency_rates(user_currencies: list[str], currency_rates: list[Currency]) -> None:
+@pytest.mark.parametrize(
+    "user_currencies, currency_rates",
+    [
+        (
+            ["USD", "EUR"],
+            [{"currency": "USD", "rate": 100.0}, {"currency": "EUR", "rate": 100.0}],
+        ),
+    ],
+)
+def test_get_user_prefer_currency_rates(
+    user_currencies: list[str], currency_rates: list[Currency]
+) -> None:
     """testing get_user_prefer_currency_rates"""
 
-    assert get_user_prefer_currency_rates(user_currencies, lambda x, y: 100.0) == currency_rates
+    assert (
+        get_user_prefer_currency_rates(user_currencies, lambda x, y: 100.0)
+        == currency_rates
+    )
 
 
 def test_get_user_stocks() -> None:
     """testing get stocks s&p500"""
 
-    test_result = [{"stock":  "AAPL", "price": 100.0}]
+    test_result = [{"stock": "AAPL", "price": 100.0}]
 
     patch_json = patch("json.load")
     mock_json = patch_json.start()
@@ -379,7 +399,7 @@ def test_get_user_stocks() -> None:
 
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
-    mock_requests.return_value.json.return_value = [{"symbol":  "AAPL", "price": 100.0}]
+    mock_requests.return_value.json.return_value = [{"symbol": "AAPL", "price": 100.0}]
     mock_requests.return_value.ok = True
 
     user_stocks = get_user_stocks()
@@ -422,7 +442,9 @@ def test_get_bad_user_stocks() -> None:
 
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
-    mock_requests.return_value.json.return_value = [{"symbol":  "AAPL", "price": "100,0"}]
+    mock_requests.return_value.json.return_value = [
+        {"symbol": "AAPL", "price": "100,0"}
+    ]
     mock_requests.return_value.ok = True
 
     user_stocks = get_user_stocks()
@@ -522,7 +544,7 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
         if "greeting" in json_result:
             json_result["greeting"] = greeting(datetime.datetime.now().time())
         result = ""
-        patch_requests = patch('requests.get')
+        patch_requests = patch("requests.get")
         mock_requests = patch_requests.start()
         mock_requests.return_value.content = """
         <ValCurse>
@@ -535,10 +557,15 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
                 <VunitRate>110,0</VunitRate>
             </Valute>
         </ValCurse>"""
-        mock_requests.return_value.json.return_value = [{"symbol": "AAPL", "price": 100.0}]
-        patch_json = patch('json.load')
+        mock_requests.return_value.json.return_value = [
+            {"symbol": "AAPL", "price": 100.0}
+        ]
+        patch_json = patch("json.load")
         mock_json = patch_json.start()
-        mock_json.return_value = {"user_currencies": ["USD", "EUR"], "user_stocks": ["AAPL"]}
+        mock_json.return_value = {
+            "user_currencies": ["USD", "EUR"],
+            "user_stocks": ["AAPL"],
+        }
 
         result = main_page(date)
         json_data = json.loads(result)

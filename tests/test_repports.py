@@ -80,7 +80,7 @@ def test_spending_by_category(
     with patch("builtins.open", m):
         spending_by_category(data, category, date)
     today = dt.date.today().strftime("%Y-%m-%d")
-    m.assert_called_once_with(f"data/spending_by_category_{today}.json", "w")
+    m.assert_called_once_with(f"data/spending_by_category_{today}.json", "w", encoding="utf-8")
     handle = m()
     handle.write.assert_has_calls(json_data)
 

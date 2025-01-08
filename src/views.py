@@ -25,14 +25,20 @@ Transaction = TypedDict(
         "description": str,
     },
 )
-Currency = TypedDict("Currency", {
-    "currency": str,
-    "rate": float,
-})
-SandP500 = TypedDict("SandP500", {
-    "stock": str,
-    "price": float,
-})
+Currency = TypedDict(
+    "Currency",
+    {
+        "currency": str,
+        "rate": float,
+    },
+)
+SandP500 = TypedDict(
+    "SandP500",
+    {
+        "stock": str,
+        "price": float,
+    },
+)
 TransactionInfo = TypedDict(
     "TransactionInfo",
     {
@@ -183,7 +189,9 @@ def get_cards_info(
     try:
         date_end = date
         date_start = date.replace(day=1)
-        df['datetime'] = df['Дата платежа'].apply(lambda x: datetime.datetime.strptime(x, "%d.%m.%Y"))
+        df["datetime"] = df["Дата платежа"].apply(
+            lambda x: datetime.datetime.strptime(x, "%d.%m.%Y")
+        )
         transactions_data = df.loc[
             (df["datetime"].dt.date >= date_start)
             & (df["datetime"].dt.date <= date_end)
@@ -240,7 +248,9 @@ def get_top_transactions(
     try:
         date_end = date
         date_start = date.replace(day=1)
-        df['datetime'] = df['Дата платежа'].apply(lambda x: datetime.datetime.strptime(x, "%d.%m.%Y"))
+        df["datetime"] = df["Дата платежа"].apply(
+            lambda x: datetime.datetime.strptime(x, "%d.%m.%Y")
+        )
         transactions_data = df.loc[
             (df["datetime"].dt.date >= date_start)
             & (df["datetime"].dt.date <= date_end)
@@ -293,8 +303,9 @@ def get_top_transactions(
 
 
 def get_user_prefer_currency_rates(
-        user_prefer_currency: list[str], get_currency_rate: OUTER) -> list[Currency]:
-    """getting user currency (from user_settings file) rates and return them in list of dict """
+    user_prefer_currency: list[str], get_currency_rate: OUTER
+) -> list[Currency]:
+    """getting user currency (from user_settings file) rates and return them in list of dict"""
 
     rates: list[Currency] = list()
     date = datetime.date.today()
@@ -323,7 +334,9 @@ def get_user_stocks() -> list[SandP500]:
         resp = requests.get(url)
 
         if not resp.ok:
-            print(f"get_user_stocks was executed with error get data from {url}: {resp.json()}")
+            print(
+                f"get_user_stocks was executed with error get data from {url}: {resp.json()}"
+            )
             return user_stocks
 
         stocks_data = resp.json()
@@ -382,13 +395,16 @@ def main_page(date_str: str = "") -> str:
         json_data["greeting"] = greeting(date_now.time())
         df = read_excel("data/operations.xlsx")
         json_data["cards"] = get_cards_info(df, date, get_currency_rates_by_cbr)
-        json_data["top_transactions"] = get_top_transactions(df, date, get_currency_rates_by_cbr)
+        json_data["top_transactions"] = get_top_transactions(
+            df, date, get_currency_rates_by_cbr
+        )
 
-        with (open("user_settings.json") as user_settings_json_file):
+        with open("user_settings.json") as user_settings_json_file:
             user_settings = json.load(user_settings_json_file)
             user_prefer_currencies = user_settings["user_currencies"]
             json_data["currency_rates"] = get_user_prefer_currency_rates(
-                user_prefer_currencies, get_currency_rates_by_cbr)
+                user_prefer_currencies, get_currency_rates_by_cbr
+            )
             json_data["stock_prices"] = get_user_stocks()
 
         json_str = json.dumps(json_data, indent=4, ensure_ascii=False)

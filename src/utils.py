@@ -9,7 +9,9 @@ log_file = "logs/utils.log"
 log_ok_str = "was executed without errors"
 makedirs("logs", exist_ok=True)
 logger = logging.getLogger(__name__)
-file_formatter = logging.Formatter("%(asctime)s %(filename)s %(levelname)s: %(message)s")
+file_formatter = logging.Formatter(
+    "%(asctime)s %(filename)s %(levelname)s: %(message)s"
+)
 file_handler = logging.FileHandler(log_file, mode="w")
 file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
