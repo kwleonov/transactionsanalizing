@@ -7,10 +7,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.views import (exchange, get_cards_info, get_currency_rates,
-                       get_currency_rates_by_cbr, get_date,
-                       get_top_transactions, get_user_prefer_currency_rates,
-                       get_user_stocks, greeting, main_page, mask_card)
+from src.views import (get_cards_info, get_top_transactions,
+                       get_user_prefer_currency_rates, get_user_stocks,
+                       greeting, main_page)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -66,148 +65,6 @@ def test_greeting(time_int: int, greeting_str: str) -> None:
 
     time = datetime.time(hour=time_int)
     assert greeting(time) == greeting_str
-
-
-@pytest.mark.parametrize(
-    "date_str, date",
-    [
-        ("30.12.2024", datetime.date(year=2024, month=12, day=30)),
-        ("29.02.2001", None),
-        ("31.06.2000", None),
-        ("01.21.1999", None),
-    ],
-)
-def test_get_date(date_str: str, date: datetime.date) -> None:
-    """testing convert date from str to datetime.date"""
-
-    assert date == get_date(date_str)
-
-
-@pytest.mark.parametrize(
-    "date, currency, rate",
-    [
-        (
-            datetime.date(day=30, month=12, year=2024),
-            ["USD", "EUR", "CYN"],
-            [1.0, 1.0, None],
-        ),
-        (
-            datetime.date(day=10, month=12, year=2024),
-            ["CYN", "EUR", "USD"],
-            [None, 2.0, 2.0],
-        ),
-        (
-            datetime.date(day=17, month=12, year=2024),
-            ["CYN", "EUR", "USD"],
-            [None, None, None],
-        ),
-    ],
-)
-def test_get_currency_rates(
-    date: datetime.date, currency: list[str], rate: list[float | None]
-) -> None:
-    """testing decorator"""
-
-    def f(date: datetime.date) -> dict[str, float] | None:
-        """function for testing decorator"""
-
-        if date.day < 16:
-            return {"USD": 2.0, "EUR": 2.0}
-
-        if date.day < 20:
-            return None
-
-        return {"USD": 1.0, "EUR": 1.0}
-
-    get_rate = get_currency_rates(f)
-    for index in range(len(currency)):
-        assert get_rate(currency[index], date) == rate[index]
-
-
-def test_get_currency_rates_by_cbr() -> None:
-    """testing get currency rate by cbr"""
-
-    mock_response = """
-        <ValCurse>
-        <Valute>
-            <CharCode>USD</CharCode>
-            <VunitRate>1,0</VunitRate>
-        </Valute>
-        </ValCurse>
-    """
-
-    with patch("requests.get") as mock_get:
-        mock_get.return_value.content = mock_response
-        mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr(
-            "USD", datetime.date(day=1, month=2, year=1991)
-        )
-        assert result == 1.0
-
-
-def test_bad_xml_data() -> None:
-    """testing get_currency_rates_by_cbr for getting bad xml data"""
-
-    mock_response = """
-            <ValCurse>
-            <Valute>
-                <CharCode>USD</CharCode>
-            </Valute>
-            </ValCurs>
-        """
-
-    with patch("requests.get") as mock_get:
-        mock_get.return_value.content = mock_response
-        mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr(
-            "USD", datetime.date(day=2, month=2, year=1991)
-        )
-        assert result is None
-
-
-def test_bad_xml_rate() -> None:
-    """testing get_currency_rates_by_cbr for convert bad xml data to float"""
-
-    mock_response = """
-            <ValCurse>
-            <Valute>
-                <CharCode>USD</CharCode>
-                <VunitRate>$1</VunitRate>
-            </Valute>
-            </ValCurse>
-        """
-
-    with patch("requests.get") as mock_get:
-        mock_get.return_value.content = mock_response
-        mock_get.return_value.status_code = 200
-        result = get_currency_rates_by_cbr(
-            "USD", datetime.date(day=3, month=2, year=1991)
-        )
-        assert result is None
-
-
-def test_mask_card() -> None:
-    """testing mask_card"""
-
-    assert mask_card("*1234") == "1234"
-
-
-@pytest.mark.parametrize(
-    "amount, currency_code, date_str, func, result",
-    [
-        (100.0, "RUB", "01.02.1992", lambda x, y: 1.0, 100.0),
-        (100.0, "USD", "02.02.1992", lambda x, y: 2.0, 200.0),
-        (100.0, "USD", "30.02.1992", lambda x, y: 3.0, None),
-        (100.0, "USD", "01.02.1992", lambda x, y: None, None),
-    ],
-)
-def test_exchange(
-    amount: float, currency_code: str, date_str: str, func: OUTER, result: float
-) -> None:
-    """testing exchange"""
-
-    result_amount = exchange(amount, currency_code, date_str, func)
-    assert result_amount is None or result_amount == result
 
 
 def test_get_cards_info() -> None:
@@ -393,21 +250,18 @@ def test_get_user_stocks() -> None:
 
     test_result = [{"stock": "AAPL", "price": 100.0}]
 
-    patch_json = patch("json.load")
-    mock_json = patch_json.start()
-    mock_json.return_value = {"user_stocks": ["AAPL"]}
+    user_stocks = ["AAPL"]
 
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
     mock_requests.return_value.json.return_value = [{"symbol": "AAPL", "price": 100.0}]
     mock_requests.return_value.ok = True
 
-    user_stocks = get_user_stocks()
+    stock_prices = get_user_stocks(user_stocks)
 
     mock_requests.stop()
-    mock_json.stop()
 
-    assert user_stocks == test_result
+    assert stock_prices == test_result
 
 
 def test_get_bad_url_user_stocks() -> None:
@@ -416,29 +270,24 @@ def test_get_bad_url_user_stocks() -> None:
     error_msg = """{'Error Message': 'Invalid API KEY. Feel free to create a Free API Key or
     visit https://site.financialmodelingprep.com/faqs?search=why-is-my-api-key-invalid for more information.'}"""
 
-    patch_json = patch("json.load")
-    mock_json = patch_json.start()
-    mock_json.return_value = {"user_stocks": ["AAPL"]}
+    user_stocks = ["AAPL"]
 
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
     mock_requests.return_value.json.return_value = error_msg
     mock_requests.return_value.ok = False
 
-    user_stocks = get_user_stocks()
+    stock_prices = get_user_stocks(user_stocks)
 
     mock_requests.stop()
-    mock_json.stop()
 
-    assert user_stocks == []
+    assert stock_prices == []
 
 
 def test_get_bad_user_stocks() -> None:
     """testing for bad json data"""
 
-    patch_json = patch("json.load")
-    mock_json = patch_json.start()
-    mock_json.return_value = {"user_stocks": ["AAPL"]}
+    user_stocks = ["AAPL"]
 
     patch_requests = patch("requests.get")
     mock_requests = patch_requests.start()
@@ -447,12 +296,11 @@ def test_get_bad_user_stocks() -> None:
     ]
     mock_requests.return_value.ok = True
 
-    user_stocks = get_user_stocks()
+    stock_prices = get_user_stocks(user_stocks)
 
     mock_requests.stop()
-    mock_json.stop()
 
-    assert user_stocks == []
+    assert stock_prices == []
 
 
 @pytest.mark.parametrize(
@@ -568,5 +416,7 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
         }
 
         result = main_page(date)
+        patch_json.stop()
+        patch_requests.stop()
         json_data = json.loads(result)
         assert json_data == json_result

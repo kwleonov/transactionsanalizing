@@ -74,22 +74,23 @@ def spending_by_category(
                 f"spending_by_category was executed with error: {e}, date: {date}, used current date."
             )
     date_start = date_end - dt.timedelta(days=1)
-    month_start = (date_start.month + 9) % 3
+    month_start = (date_start.month + 9) % 12
     date_start = date_start.replace(month=month_start)
+    if date_start > date_end:
+        year_start = date_end.year - 1
+        date_start = date_start.replace(year=year_start)
     try:
-        transactions["payment_date"] = transactions["Дата платежа"].apply(
-            lambda x: dt.datetime.strptime(x, "%d.%m.%Y")
-        )
+        transactions["payment_date"] = pd.to_datetime(transactions["Дата платежа"], format="%d.%m.%Y").dt.date
     except Exception as e:
         logger.error(f"spending_by_category was executed with error: {e}")
         return filtered_df
     try:
         filtered_df = transactions.loc[
             (transactions["Статус"] == "OK")
-            & (transactions["Сумма Платежа"] < 0)
+            & (transactions["Сумма платежа"] < 0)
             & (transactions["Категория"] == category)
-            & (transactions["payment_date"].dt.date <= date_end)
-            & (transactions["payment_date"].dt.date >= date_start)
+            & (transactions["payment_date"] <= date_end)
+            & (transactions["payment_date"] >= date_start)
         ]
     except Exception as e:
         logger.error(f"spending_by_category was executed with error: {e}")

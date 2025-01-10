@@ -1,15 +1,29 @@
 import datetime
 import json
+import logging
 import os
 from collections.abc import Callable
 from typing import TypedDict
-from xml.etree import ElementTree as ET
 
 import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-from src.utils import read_excel
+from src.utils import (exchange, get_currency_rates_by_cbr, get_user_settings,
+                       mask_card, read_excel)
+
+log_file = "logs/views.log"
+log_ok_str = "was executed without errors"
+os.makedirs("logs", exist_ok=True)
+logger = logging.getLogger(__name__)
+file_formatter = logging.Formatter(
+    "%(asctime)s %(filename)s %(levelname)s: %(message)s"
+)
+file_handler = logging.FileHandler(log_file, mode="w")
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+logger.setLevel(logging.DEBUG)
+
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -51,17 +65,6 @@ TransactionInfo = TypedDict(
 )
 
 
-def get_date(date_str: str) -> datetime.date | None:
-    """convert date from str with format '%d.%m.%Y' to dict['date': datetime.date, 'time': datetime.time]"""
-
-    try:
-        date = datetime.datetime.strptime(date_str, "%d.%m.%Y")
-        return date.date()
-    except Exception as e:
-        print(f"get_date was executed with error: {e}")
-    return None
-
-
 def greeting(time: datetime.time) -> str:
     """greeting by time:
     from 0 to 5:59 - Доброй ночи
@@ -74,6 +77,7 @@ def greeting(time: datetime.time) -> str:
     good_evening = "Добрый вечер"
     good_night = "Доброй ночи"
 
+    logger.debug(f"greeting {log_ok_str}")
     if time.hour < 6:
         return good_night
     if time.hour < 12:
@@ -81,103 +85,6 @@ def greeting(time: datetime.time) -> str:
     if time.hour < 18:
         return good_day
     return good_evening
-
-
-def get_currency_rates(inner: INNER) -> OUTER:
-    """get exchange from currency amount by code 'currency_code' to RUB"""
-
-    currency_rates: dict[datetime.date, dict[str, float]] = (
-        dict()
-    )  # dict of currency rate by date as key
-
-    def wrapper(currency_code: str, date: datetime.date) -> float | None:
-        """getting currency rates from external API"""
-
-        if date in currency_rates:
-            if currency_code in currency_rates[date]:
-                return currency_rates[date][currency_code]
-            print(
-                f"get_currency_rates didn't find {currency_code} in {currency_rates} at {date}"
-            )
-            return None
-
-        currency_rates_by_inner = inner(date)
-        if currency_rates_by_inner is None:
-            print(f"get_currency_rates at {date} was executed inner and returned None")
-            return None
-
-        currency_rates[date] = currency_rates_by_inner
-        if currency_code in currency_rates_by_inner:
-            return currency_rates_by_inner[currency_code]
-        print(
-            f"get_currency_rates didn't find {currency_code} in {currency_rates} at {date}"
-        )
-        return None
-
-    return wrapper
-
-
-@get_currency_rates
-def get_currency_rates_by_cbr(date: datetime.date) -> dict[str, float] | None:
-    """get currency rates by cbr.ru
-    url example: 'https://cbr.ru/scripts/XML_daily.asp?date_req=21/03/2002'
-    API returned XML data, where 'Valute' tag contents:
-    'CharCode' as currency code, 'VunitRate' as currency rate"""
-
-    # get XML data
-    url = f'https://cbr.ru/scripts/XML_daily.asp?date_req={date.strftime("%d/%m/%Y")}'
-
-    xml_data: ET.Element = ET.Element("Empty")
-    try:
-        req = requests.get(url)
-        xml_data = ET.fromstring(req.content)
-
-    except Exception as e:
-        print(f"get_currency_rates_by_cbr was executed with error: {e}")
-        return None
-
-    # get currency rates from xml data
-    currency_rates: dict[str, float] = dict()
-    try:
-        for valute in xml_data.iter("Valute"):
-            charcode = valute.find("CharCode")
-            rate = valute.find("VunitRate")
-            if (charcode is not None) and (rate is not None):
-                rate_float = float(str(rate.text).replace(",", "."))
-                currency_rates[str(charcode.text)] = rate_float
-    except Exception as e:
-        print(f"get_currency_rates_by_cbr getting error: {e}")
-        return None
-
-    return currency_rates
-
-
-def mask_card(card_number: str) -> str:
-    """masking card number by template 'XXXX',
-    where XXXX is last 4 digits of the card number"""
-
-    last_digits = card_number[-4:]
-
-    return last_digits
-
-
-def exchange(
-    amount: float, currency_code: str, date_str: str, get_currency_rate: OUTER
-) -> float | None:
-    """exchange amount form currency code to RUB"""
-
-    if currency_code == "RUB":
-        return amount
-    date = get_date(date_str)
-    if date is None:
-        print("exchange was executed with error: invalid date format")
-        return None
-    rate = get_currency_rate(currency_code, date)
-    if rate is None:
-        print("exchange was executed with error: get_currency_rate was returned None")
-        return None
-    amount_rub = rate * amount
-    return amount_rub
 
 
 def get_cards_info(
@@ -189,12 +96,10 @@ def get_cards_info(
     try:
         date_end = date
         date_start = date.replace(day=1)
-        df["datetime"] = df["Дата платежа"].apply(
-            lambda x: datetime.datetime.strptime(x, "%d.%m.%Y")
-        )
+        df["payment_date"] = pd.to_datetime(df["Дата платежа"], format='%d.%m.%Y').dt.date
         transactions_data = df.loc[
-            (df["datetime"].dt.date >= date_start)
-            & (df["datetime"].dt.date <= date_end)
+            (df["payment_date"] >= date_start)
+            & (df["payment_date"] <= date_end)
             & (df["Сумма платежа"] < 0)
             & (df["Статус"] == "OK"),
             [
@@ -202,22 +107,25 @@ def get_cards_info(
                 "Сумма платежа",
                 "Валюта платежа",
                 "Дата платежа",
+                "payment_date",
                 "Кэшбэк",
             ],
-        ].copy()
-
+        ]
+        if transactions_data.empty:
+            logger.warning("get_cards_info got empty dataframe after filtering")
+            return cards
         transactions_data["amount"] = transactions_data.apply(
             lambda x: exchange(
                 x["Сумма платежа"],
                 x["Валюта платежа"],
-                x["Дата платежа"],
+                x["payment_date"],
                 get_currency_rate,
             ),
             axis=1,
         )
         transactions_data["cashback"] = transactions_data.apply(
             lambda x: exchange(
-                x["Кэшбэк"], x["Валюта платежа"], x["Дата платежа"], get_currency_rate
+                x["Кэшбэк"], x["Валюта платежа"], x["payment_date"], get_currency_rate
             ),
             axis=1,
         )
@@ -233,8 +141,9 @@ def get_cards_info(
                     "cashback": v["cashback"],
                 }
             )
+        logger.debug(f"get_cards_info {log_ok_str}")
     except Exception as e:
-        print(f"get_cards_info was executed with error: {e}")
+        logger.error(f"get_cards_info was executed with error: {e}")
     return cards
 
 
@@ -248,26 +157,28 @@ def get_top_transactions(
     try:
         date_end = date
         date_start = date.replace(day=1)
-        df["datetime"] = df["Дата платежа"].apply(
-            lambda x: datetime.datetime.strptime(x, "%d.%m.%Y")
-        )
+        df["payment_date"] = pd.to_datetime(df["Дата платежа"], format='%d.%m.%Y').dt.date
         transactions_data = df.loc[
-            (df["datetime"].dt.date >= date_start)
-            & (df["datetime"].dt.date <= date_end)
+            (df["payment_date"] >= date_start)
+            & (df["payment_date"] <= date_end)
             & (df["Статус"] == "OK"),
             [
                 "Сумма платежа",
                 "Валюта платежа",
                 "Дата платежа",
+                "payment_date",
                 "Категория",
                 "Описание",
             ],
-        ].copy()
+        ]
+        if transactions_data.empty:
+            logger.warning("get_top_transactions got empty dataframe after filtering.")
+            return transactions
         transactions_data["amount_rub"] = transactions_data.apply(
             lambda x: exchange(
                 x["Сумма платежа"],
                 x["Валюта платежа"],
-                x["Дата платежа"],
+                x["payment_date"],
                 get_currency_rate,
             ),
             axis=1,
@@ -295,9 +206,9 @@ def get_top_transactions(
                     "description": row["description"],
                 }
             )
-
+        logger.debug(f"get_top_transactions {log_ok_str}")
     except Exception as e:
-        print(f"get_top_transactions was executed with error: {e}")
+        logger.error(f"get_top_transactions was executed with error: {e}")
 
     return transactions
 
@@ -315,26 +226,23 @@ def get_user_prefer_currency_rates(
         if rate is not None:
             rate_float = float(rate)
         rates.append({"currency": currency, "rate": rate_float})
+    logger.debug(f"get_user_prefer_currency_rates {log_ok_str}")
     return rates
 
 
-def get_user_stocks() -> list[SandP500]:
+def get_user_stocks(stocks: list[str]) -> list[SandP500]:
     """getting S&P500 stocks from https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}"""
 
     user_stocks: list[SandP500] = list()
     try:
-        stocks = list()
         load_dotenv()
         api_key = os.getenv("APISP500")
-        with open("user_settings.json") as f:
-            json_data = json.load(f)
-            stocks = json_data["user_stocks"]
 
         url = f"https://financialmodelingprep.com/api/v3/stock/list?apikey={api_key}"
         resp = requests.get(url)
 
         if not resp.ok:
-            print(
+            logger.warning(
                 f"get_user_stocks was executed with error get data from {url}: {resp.json()}"
             )
             return user_stocks
@@ -344,8 +252,9 @@ def get_user_stocks() -> list[SandP500]:
             stock = symbol["symbol"]
             if stock in stocks:
                 user_stocks.append({"stock": stock, "price": float(symbol["price"])})
+        logger.debug(f"get_user_stocks {log_ok_str}")
     except Exception as e:
-        print(f"get_user_stocks was executed with error: {e}")
+        logger.error(f"get_user_stocks was executed with error: {e}")
 
     return user_stocks
 
@@ -391,25 +300,38 @@ def main_page(date_str: str = "") -> str:
     try:
         if date_str != "":
             date = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").date()
-        json_data: TransactionInfo = dict()  # type: ignore
-        json_data["greeting"] = greeting(date_now.time())
+        greeting_str = greeting(date_now.time())
+
         df = read_excel("data/operations.xlsx")
-        json_data["cards"] = get_cards_info(df, date, get_currency_rates_by_cbr)
-        json_data["top_transactions"] = get_top_transactions(
+        cards = get_cards_info(df, date, get_currency_rates_by_cbr)
+
+        top_transactions = get_top_transactions(
             df, date, get_currency_rates_by_cbr
         )
+        user_settings = get_user_settings("user_settings.json")
+        if user_settings is None:
+            logger.error("the main_page was executed with error: can't read user_settings.json")
+            return json_str
+        user_prefer_currencies = user_settings["user_currencies"]
+        currency_rates = get_user_prefer_currency_rates(
+            user_prefer_currencies, get_currency_rates_by_cbr
+        )
 
-        with open("user_settings.json") as user_settings_json_file:
-            user_settings = json.load(user_settings_json_file)
-            user_prefer_currencies = user_settings["user_currencies"]
-            json_data["currency_rates"] = get_user_prefer_currency_rates(
-                user_prefer_currencies, get_currency_rates_by_cbr
-            )
-            json_data["stock_prices"] = get_user_stocks()
+        user_stocks = user_settings["user_stocks"]
+        stock_prices = get_user_stocks(user_stocks)
+
+        json_data: TransactionInfo = {
+            "greeting": greeting_str,
+            "cards": cards,
+            "top_transactions": top_transactions,
+            "currency_rates": currency_rates,
+            "stock_prices": stock_prices,
+        }
 
         json_str = json.dumps(json_data, indent=4, ensure_ascii=False)
+        logger.debug(f"main_page {log_ok_str}")
 
     except Exception as e:
-        print(f"main_page was executed with error: {e}")
+        logger.error(f"main_page was executed with error: {e}")
 
     return json_str

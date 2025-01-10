@@ -1,5 +1,5 @@
 # the test_reports module
-import datetime as dt
+import datetime
 from unittest.mock import call, mock_open, patch
 
 import pandas as pd
@@ -14,7 +14,7 @@ from src.reports import spending_by_category, write_report
         (
             pd.DataFrame(
                 [("08.01.2025", "OK", -800.0, "Переводы")],
-                columns=["Дата платежа", "Статус", "Сумма Платежа", "Категория"],
+                columns=["Дата платежа", "Статус", "Сумма платежа", "Категория"],
             ),
             "Переводы",
             [
@@ -28,7 +28,7 @@ from src.reports import spending_by_category, write_report
                 call(": "),
                 call('"OK"'),
                 call(", "),
-                call('"Сумма Платежа"'),
+                call('"Сумма платежа"'),
                 call(": "),
                 call("-800.0"),
                 call(", "),
@@ -43,7 +43,7 @@ from src.reports import spending_by_category, write_report
         (
             pd.DataFrame(
                 [("08.01.2025", "OK", -800.0, "Переводы")],
-                columns=["Дата платежа", "Статус", "Сумма Платежа", "Категория"],
+                columns=["Дата платежа", "Статус", "Сумма платежа", "Категория"],
             ),
             "Переводы",
             [
@@ -57,7 +57,7 @@ from src.reports import spending_by_category, write_report
                 call(": "),
                 call('"OK"'),
                 call(", "),
-                call('"Сумма Платежа"'),
+                call('"Сумма платежа"'),
                 call(": "),
                 call("-800.0"),
                 call(", "),
@@ -79,13 +79,13 @@ def test_spending_by_category(
     m = mock_open()
     with patch("builtins.open", m):
         spending_by_category(data, category, date)
-    today = dt.date.today().strftime("%Y-%m-%d")
+    today = datetime.date.today().strftime("%Y-%m-%d")
     m.assert_called_once_with(f"data/spending_by_category_{today}.json", "w", encoding="utf-8")
     handle = m()
     handle.write.assert_has_calls(json_data)
 
 
-def test_test_spending_by_category_bad_filename() -> None:
+def test_spending_by_category_bad_filename() -> None:
     """testing writing report by bad path to json file"""
 
     bad_filename = "not_exist_dir/filename.json"
@@ -107,7 +107,7 @@ def test_test_spending_by_category_bad_filename() -> None:
         (
             pd.DataFrame(
                 [("2025-01-08", "OK", -800.0, "Переводы")],
-                columns=["Дата платежа", "Статус", "Сумма Платежа", "Категория"],
+                columns=["Дата платежа", "Статус", "Сумма платежа", "Категория"],
             ),
             "Переводы",
         ),
@@ -120,7 +120,7 @@ def test_test_spending_by_category_bad_filename() -> None:
         ),
     ],
 )
-def test_test_test_spending_by_category_bad_dataframe(
+def test_spending_by_category_bad_dataframe(
     data: pd.DataFrame, category: str
 ) -> None:
     """testing the spending_by_category function getting bad excel data"""
