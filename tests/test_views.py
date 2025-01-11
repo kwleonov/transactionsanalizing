@@ -420,3 +420,12 @@ def test_main_page(date: str, json_result: TransactionInfo) -> None:
         patch_requests.stop()
         json_data = json.loads(result)
         assert json_data == json_result
+
+
+def test_main_page_no_user_settings() -> None:
+    """testing the main_page function got not exist user_settings file"""
+
+    with patch("json.load") as mock_json:
+        mock_json.return_value = None
+        json_data = main_page("2020-12-12 23:59:59")
+        assert json_data == "{}"

@@ -33,6 +33,8 @@ bad api key.
 - *test_get_bad_user_stocks* - the test for the get_user_stocks got 
 bad json data.
 - *test_main_page* - the for the main_page function.
+- *test_main_page_no_user_settings* - the test for the main_page got 
+a not exist user settings Json file.
 
 **utils**
 - *read_excel* - get Pandas DataFrame data from Excel file.
