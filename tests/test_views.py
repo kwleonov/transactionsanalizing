@@ -105,11 +105,11 @@ def test_get_cards_info() -> None:
 def test_get_cards_info_error() -> None:
     """testing get_cards_info with bad data"""
 
-    date = datetime.date.today()
+    date = datetime.date(day=17, month=12, year=1994)
     df = pd.DataFrame(
         [
-            ("OK", "*1234", -1000.0, "XYZ", "15.12.1994", 100.0),
-            ("OK", "*1234", -1000.0, "RUB", "16.12.1994", 100.0),
+            ("OK", "*1234", -1000.0, "RUB", "15.12.1994", 100.0),
+            ("OK", "*1234", -1000.0, "XYZ", "16.12.1994", 100.0),
             ("OK", "*1235", -1000.0, "RUB", "15.12.1994", 100.0),
         ],
         columns=[
@@ -198,8 +198,8 @@ def test_get_top_transactions(
     assert result == result_dict
 
 
-def test_get_top_transactions_error() -> None:
-    """testing get_top_transactions getting error"""
+def test_get_top_transactions_empty() -> None:
+    """testing get_top_transactions getting empty list"""
 
     df = pd.DataFrame(
         [
@@ -221,7 +221,7 @@ def test_get_top_transactions_error() -> None:
             "Описание",
         ],
     )
-    date = datetime.date.today()
+    date = datetime.date(day=1, month=11, year=1996)
     assert get_top_transactions(df, date, lambda x, y: 1.0) == []
 
 
@@ -246,7 +246,7 @@ def test_get_user_prefer_currency_rates(
 
 
 def test_get_user_stocks() -> None:
-    """testing get stocks s&p500"""
+    """testing getting stocks s&p500"""
 
     test_result = [{"stock": "AAPL", "price": 100.0}]
 
