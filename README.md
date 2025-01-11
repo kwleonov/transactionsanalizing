@@ -22,9 +22,13 @@ function execution depending on the current time.
 response.
 - *test_get_cards_info_error* - the test the correctness of 
 the get_cards_info which got a bad excel currency symbol.
+- test_get_cards_info_empty* - the test for the get_cards_info got 
+empty data after filtering.
 - *test_get_top_transactions* - the test getting top 5 transaction list.
 - *test_get_top_transactions_empty* - testing get_top_transactions getting 
 empty list
+- *test_get_top_transactions_bad_key* - the test for the 
+get_top_transactions got bad Excel data.
 - *test_get_user_prefer_currency_rates* - the test for 
 the get_user_prefer_currency_rates function.
 - *test_get_user_stocks* - the test for the get_user_stocks function.

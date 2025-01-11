@@ -125,6 +125,30 @@ def test_get_cards_info_error() -> None:
     assert get_cards_info(df, date, lambda x, y: None) == cards
 
 
+def test_get_cards_info_empty() -> None:
+    """testing the get_cards_info returned empty data"""
+
+    date = datetime.date(day=17, month=11, year=1993)
+    df = pd.DataFrame(
+        [
+            ("OK", "*1234", -1000.0, "RUB", "15.12.1993", 100.0),
+            ("OK", "*1234", -1000.0, "RUB", "16.12.1993", 100.0),
+            ("OK", "*1235", -1000.0, "RUB", "15.12.1993", 100.0),
+        ],
+        columns=[
+            "Статус",
+            "Номер карты",
+            "Сумма платежа",
+            "Валюта платежа",
+            "Дата платежа",
+            "Кэшбэк",
+        ],
+    )
+    cards = get_cards_info(df, date, lambda x, y: 1.0)
+
+    assert len(cards) == 0
+
+
 @pytest.mark.parametrize(
     "transactions, date, get_currency_rate, result_dict",
     [
@@ -217,12 +241,35 @@ def test_get_top_transactions_empty() -> None:
             "Сумма платежа",
             "Валюта платежа",
             "Дата платежа",
-            "Категори",
+            "Категория",
             "Описание",
         ],
     )
-    date = datetime.date(day=1, month=11, year=1996)
-    assert get_top_transactions(df, date, lambda x, y: 1.0) == []
+    date = datetime.date(day=15, month=11, year=1996)
+    top_transactions = get_top_transactions(df, date, lambda x, y: 1.0)
+    assert len(top_transactions) == 0
+
+
+def test_get_top_transactions_bad_key() -> None:
+    """testing get_top_transactions getting bad Excel data"""
+
+    df = pd.DataFrame(
+        [
+            ("OK", "*1234", 100.01, "USD", "15.12.1996", "Перевод", "Друг"),
+        ],
+        columns=[
+            "Статус",
+            "Номер карт",
+            "Сумма платежа",
+            "Валюта платежа",
+            "Дата платежа",
+            "Категория",
+            "Description",
+        ],
+    )
+    date = datetime.date(day=15, month=11, year=1996)
+    top_transactions = get_top_transactions(df, date, lambda x, y: 1.0)
+    assert len(top_transactions) == 0
 
 
 @pytest.mark.parametrize(

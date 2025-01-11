@@ -171,6 +171,8 @@ def get_top_transactions(
                 "Описание",
             ],
         ]
+        print(transactions_data)
+        print(transactions_data.empty)
         if transactions_data.empty:
             logger.warning("get_top_transactions got empty dataframe after filtering.")
             return transactions
