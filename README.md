@@ -50,6 +50,8 @@ rates API.
 the read_excel function.
 - *test_not_exist_excel* - the test for the read_excel function got 
 not exist excel file.
+- *test_get_user_settings* - the test for get_useer_settings got not exist 
+user settings Json file.
 - *test_get_date* - testing convert date from str to datetime.date.
 - *test_exchange* - the test to verify the correctness 
 the exchange function.

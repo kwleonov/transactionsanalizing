@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from src.utils import (exchange, get_currency_rates, get_currency_rates_by_cbr,
-                       get_date, mask_card, read_excel)
+                       get_date, get_user_settings, mask_card, read_excel)
 
 INNER = Callable[[datetime.date], dict[str, float] | None]
 OUTER = Callable[[str, datetime.date], float | None]
@@ -28,6 +28,13 @@ def test_not_exist_excel() -> None:
 
     not_exist_excel = read_excel("notexist.xlsx")
     assert not_exist_excel.empty
+
+
+def test_get_user_settings() -> None:
+    """testing get not exists user_settings file"""
+
+    user_settings = get_user_settings("not_exist_json_file.json")
+    assert user_settings is None
 
 
 @pytest.mark.parametrize(
