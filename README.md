@@ -13,7 +13,10 @@ the month of the date.
 the specified data.
 - *get_user_prefer_currency_rates* - returns currency rates enums in 
 the user_setting file for the current day. 
-- *get_user_stocks* - returns stock prices of S&P500 for the current day.
+- *get_user_stocks* - returns stock prices of S&P500 for the current day. 
+Need get api key from 'https://financialmodelingprep.com', create 
+the '.env' file and put 'APISP500=yourapikey' in it, where 'yourapikey' 
+nneeds to be changed to the issued 'financialmodelingprep.com' key.
 
 **test_views**
 - *test_greeting* - the test to verify the correctness the greeting 
