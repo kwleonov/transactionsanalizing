@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.10"
 pandas = "^2.2.3"
 openpyxl = "^3.1.5"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
 
 
 [tool.poetry.group.lint.dependencies]
@@ -16,12 +18,27 @@ flake8 = "^7.1.1"
 isort = "^5.13.2"
 mypy = "^1.14.0"
 pandas-stubs = "^2.2.3.241126"
+types-requests = "^2.32.0.20241016"
+black = "^24.10.0"
 
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
 
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+disallow_untyped_defs = true
+warn_return_any = true
+exclude = 'venv'
+
+[tool.coverage.run]
+omit = [
+    "src/main.py",
+]
+
